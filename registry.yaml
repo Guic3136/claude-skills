@@ -1,0 +1,63 @@
+# Claude Skills 注册表
+# 管理仓库中所有技能的元数据
+
+version: "1.0.0"
+last_updated: "2026-03-14"
+
+skills:
+  - id: file-organizer
+    name: 文件自动分类
+    version: 1.0.0
+    author: Leo Baher
+    description: 工作区文件自动分类 - 创建即分类，支持团队协作
+    category: productivity
+    tags: [file-management, organization, workspace, team]
+    path: skills/file-organizer
+    install_by_default: true
+    dependencies: []
+    status: stable
+
+  # 示例：未来可添加的技能
+  # - id: commit-message
+  #   name: 提交信息生成器
+  #   version: 0.1.0
+  #   author: Leo Baher
+  #   description: 自动生成规范的 Git 提交信息
+  #   category: communication
+  #   tags: [git, productivity, automation]
+  #   path: skills/commit-message
+  #   install_by_default: false
+  #   dependencies: []
+  #   status: experimental
+
+categories:
+  - id: productivity
+    name: 生产力工具
+    description: 提高工作效率的工具
+    icon: 🚀
+
+  - id: communication
+    name: 沟通协作
+    description: 辅助团队沟通的工具
+    icon: 💬
+
+  - id: development
+    name: 开发工具
+    description: 辅助开发的工具
+    icon: 💻
+
+  - id: documentation
+    name: 文档工具
+    description: 文档生成和管理工具
+    icon: 📝
+
+  - id: analysis
+    name: 分析工具
+    description: 代码分析和质量检查
+    icon: 🔍
+
+meta:
+  total_skills: 1
+  stable: 1
+  experimental: 0
+  deprecated: 0

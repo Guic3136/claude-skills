@@ -1,0 +1,10 @@
+name: your-skill-name
+description: 技能描述
+version: 1.0.0
+author: Your Name
+tags:
+  - utility
+
+entry_point:
+  type: prompt
+  file: system-prompt.md

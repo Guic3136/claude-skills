@@ -1,6 +1,15 @@
 # Claude
-.claude/local/
-.claude/cache/
+.claude/
+.claude.json
+
+# Secrets and credentials
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+secrets.yaml
+config.local.json
 
 # Python
 __pycache__/

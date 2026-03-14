@@ -1,0 +1,150 @@
+{
+  "version": "1.0.0",
+  "schema_version": "1.0",
+  "created": "2026-03-14",
+  "updated": "2026-03-14",
+  "description": "团队共享文件自动分类规则",
+  "maintainer": "Leo Baher",
+  "base_path": "${WORKSPACE_ROOT}",
+  "rules": [
+    {
+      "id": "screenshots",
+      "name": "截图文件",
+      "extensions": [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp"],
+      "directory": "screenshots",
+      "naming_pattern": "{project}_{YYYYMMDD}_{description}.{ext}",
+      "description": "网页截图、图片、可视化结果",
+      "examples": ["baidu_homepage_20260314.png", "dashboard_chart_20260314.jpg"],
+      "auto_create_dir": true
+    },
+    {
+      "id": "python_scripts",
+      "name": "Python脚本",
+      "extensions": [".py", ".ipynb", ".pyw"],
+      "directory": "scripts/python",
+      "naming_pattern": "{function}_{module}.py",
+      "description": "Python工具脚本、Jupyter笔记本、数据分析脚本",
+      "examples": ["data_analyzer.py", "api_client.py", "test_runner.ipynb"],
+      "auto_create_dir": true
+    },
+    {
+      "id": "node_scripts",
+      "name": "Node.js脚本",
+      "extensions": [".js", ".ts", ".mjs", ".cjs"],
+      "directory": "scripts/node",
+      "naming_pattern": "{function}.{ext}",
+      "description": "Node.js工具脚本、构建脚本",
+      "examples": ["scraper.js", "build.ts", "deploy.mjs"],
+      "auto_create_dir": true
+    },
+    {
+      "id": "configs",
+      "name": "配置文件",
+      "extensions": [".json", ".yaml", ".yml", ".conf", ".ini", ".env", ".toml"],
+      "directory": "configs",
+      "naming_pattern": "{service}_{type}.{ext}",
+      "description": "应用配置、环境设置、API密钥配置",
+      "examples": ["api_config.json", "database.yaml", "app.env"],
+      "auto_create_dir": true,
+      "sensitive": [".env", "*secret*", "*key*", "*token*"]
+    },
+    {
+      "id": "output",
+      "name": "输出文档",
+      "extensions": [".md", ".txt", ".pdf", ".docx", ".html", ".rtf"],
+      "directory": "output",
+      "naming_pattern": "{type}_{YYYYMMDD}_{description}.{ext}",
+      "description": "生成的报告、文档、结果、说明文件",
+      "examples": ["report_20260314_sales.md", "analysis_20260314.pdf"],
+      "auto_create_dir": true
+    },
+    {
+      "id": "data",
+      "name": "数据文件",
+      "extensions": [".csv", ".xlsx", ".xls", ".parquet", ".db", ".sqlite", ".jsonl"],
+      "directory": "data",
+      "naming_pattern": "{dataset}_{date}.{ext}",
+      "description": "数据集、数据表、数据库文件",
+      "examples": ["users_20260314.csv", "sales_data.xlsx", "app.db"],
+      "auto_create_dir": true,
+      "subdirs": ["raw", "processed", "external"]
+    },
+    {
+      "id": "temp",
+      "name": "临时文件",
+      "extensions": [".log", ".tmp", ".cache", ".bak", ".swp"],
+      "directory": "temp",
+      "naming_pattern": "{purpose}_{timestamp}.{ext}",
+      "description": "临时文件、日志、缓存（定期清理）",
+      "examples": ["debug_20260314_120000.log", "cache.tmp"],
+      "auto_create_dir": true,
+      "auto_clean": true,
+      "retention_days": 7
+    },
+    {
+      "id": "utils",
+      "name": "工具函数",
+      "extensions": [".py", ".js", ".sh", ".ps1"],
+      "directory": "utils",
+      "naming_pattern": "{category}_{name}.{ext}",
+      "description": "可复用的通用工具函数、辅助脚本",
+      "examples": ["file_helpers.py", "string_utils.js", "deploy.sh"],
+      "auto_create_dir": true
+    },
+    {
+      "id": "docs",
+      "name": "项目文档",
+      "extensions": [".md"],
+      "directory": "docs",
+      "naming_pattern": "{topic}.md",
+      "description": "项目文档、说明、设计文档（排除输出报告）",
+      "examples": ["architecture.md", "api_reference.md", "setup_guide.md"],
+      "auto_create_dir": true,
+      "exclude_patterns": ["*report*", "*output*", "*result*"]
+    },
+    {
+      "id": "tests",
+      "name": "测试文件",
+      "extensions": [".test.py", ".spec.js", ".test.ts", "_test.py", "_spec.js"],
+      "directory": "tests",
+      "naming_pattern": "{module}_test.{ext}",
+      "description": "单元测试、集成测试文件",
+      "examples": ["api_test.py", "utils.spec.js"],
+      "auto_create_dir": true,
+      "subdirs": ["unit", "integration", "e2e"]
+    }
+  ],
+  "naming_conventions": {
+    "date_format": "YYYYMMDD",
+    "timestamp_format": "YYYYMMDD_HHMMSS",
+    "separator": "_",
+    "case_style": "snake_case",
+    "max_filename_length": 100
+  },
+  "team_settings": {
+    "shared_rules_source": "git",
+    "rules_repository": "",
+    "auto_sync": true,
+    "sync_interval_hours": 24,
+    "allow_local_override": true,
+    "conflict_resolution": "ask_user"
+  },
+  "hooks": {
+    "before_create": [
+      "validate_extension",
+      "check_existing",
+      "suggest_naming"
+    ],
+    "after_create": [
+      "confirm_location",
+      "update_index"
+    ]
+  },
+  "validation": {
+    "require_directory_exists": false,
+    "auto_create_directories": true,
+    "check_filename_length": true,
+    "forbidden_chars": ["<", ">", ":", "\"", "/", "\\", "|", "?", "*"],
+    "reserved_names": ["CON", "PRN", "AUX", "NUL", "COM1-9", "LPT1-9"]
+  }
+}

@@ -1,0 +1,40 @@
+name: file-organizer
+description: 工作区文件自动分类 - 创建即分类，支持团队协作
+version: 1.0.0
+author: Leo Baher
+tags:
+  - file-management
+  - organization
+  - workspace
+  - team-collaboration
+
+# 技能入口
+entry_point:
+  type: prompt
+  file: system-prompt.md
+
+# 配置文件
+config_files:
+  - organization-rules.json
+  - TEAM_SETUP.md
+
+# 触发条件 - 当 Claude 要创建文件时触发
+hooks:
+  - event: before_file_write
+    action: validate_file_location
+    description: 验证文件是否放入正确目录
+
+# 依赖
+dependencies:
+  - name: @modelcontextprotocol/server-filesystem
+    optional: true
+    description: 可选，用于高级文件操作
+
+# 团队共享配置
+team_config:
+  # 共享规则文件位置
+  shared_rules_url: ./organization-rules.json
+  # 是否允许本地覆盖
+  allow_local_override: true
+  # 规则版本检查
+  version_check: true

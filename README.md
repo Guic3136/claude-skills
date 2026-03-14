@@ -27,17 +27,45 @@ cd claude-skills
 claude
 ```
 
-### 安装所有推荐技能
+### 安装所有技能
 
 ```bash
-./scripts/install.sh --default
+./scripts/install.sh --all
 ```
 
-### 手动安装
+### 查看可用技能
 
 ```bash
-# 复制技能到 Claude 技能目录
+./scripts/install.sh --list
+```
+
+### 安装示例
+
+```bash
+# 查看帮助
+./scripts/install.sh --help
+
+# 列出所有可用技能
+./scripts/install.sh --list
+
+# 只安装 file-organizer 技能（推荐）
+./scripts/install.sh file-organizer
+
+# 安装所有技能
+./scripts/install.sh --all
+```
+
+### 手动安装（备选）
+
+如果脚本无法运行，可以手动复制：
+
+```bash
+# 复制指定技能到 Claude 技能目录
+# Linux/Mac:
 cp -r skills/file-organizer ~/.claude/skills/
+
+# Windows:
+xcopy /E /I skills\file-organizer %USERPROFILE%\.claude\skills\
 
 # 重启 Claude Code
 claude

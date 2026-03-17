@@ -1,4 +1,8 @@
 {
+  "env": {
+    "SAVE_PROGRESS_CONTEXT_LIMIT": "128000",
+    "SAVE_PROGRESS_WARNING_THRESHOLD": "0.9"
+  },
   "hooks": {
     "PreCompact": [
       {
@@ -18,6 +22,18 @@
             "type": "command",
             "command": "node ~/.claude/scripts/load-summary.js",
             "statusMessage": "正在加载会话摘要..."
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/scripts/save-progress-config.js --check 2>/dev/null || echo '💡 提示：如需自定义上下文上限，请创建 .claude/save-progress-config.json'",
+            "statusMessage": "检查 save-progress 配置...",
+            "once": true
           }
         ]
       }

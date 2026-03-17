@@ -8,6 +8,7 @@
 - ⚠️ **自动提醒**: 上下文即将溢出时自动提醒是否保存
 - 🔄 **自动加载**: 压缩后自动加载最近的会话摘要
 - 📂 **按时间戳存储**: 避免文件覆盖，支持多版本历史
+- ⚙️ **可配置**: 支持自定义上下文上限（128k/200k等）
 
 ## 安装
 
@@ -22,16 +23,16 @@ cp skills/save-progress/.claude/commands/save-progress.md .claude/commands/
 
 ### 2. 安装脚本
 
-将 `.claude/scripts/load-summary.js` 复制到你的用户配置目录：
+将 `.claude/scripts/` 下的文件复制到你的用户配置目录：
 
 ```bash
 # Windows
 mkdir -p %USERPROFILE%\.claude\scripts
-cp .claude/scripts/load-summary.js %USERPROFILE%\.claude\scripts\
+cp .claude/scripts/*.js %USERPROFILE%\.claude\scripts\
 
 # macOS/Linux
 mkdir -p ~/.claude/scripts
-cp .claude/scripts/load-summary.js ~/.claude/scripts/
+cp .claude/scripts/*.js ~/.claude/scripts/
 ```
 
 ### 3. 配置 Hooks
@@ -40,6 +41,10 @@ cp .claude/scripts/load-summary.js ~/.claude/scripts/
 
 ```json
 {
+  "env": {
+    "SAVE_PROGRESS_CONTEXT_LIMIT": "128000",
+    "SAVE_PROGRESS_WARNING_THRESHOLD": "0.9"
+  },
   "hooks": {
     "PreCompact": [
       {
@@ -67,7 +72,49 @@ cp .claude/scripts/load-summary.js ~/.claude/scripts/
 }
 ```
 
-**Windows 用户注意**: 将 `~/.claude/scripts/load-summary.js` 替换为实际路径，如 `C:/Users/Admin/.claude/scripts/load-summary.js`
+**Windows 用户注意**: 将 `~/.claude/scripts/` 替换为实际路径，如 `C:/Users/Admin/.claude/scripts/`
+
+## 配置上下文上限
+
+### 方法 1: 环境变量（推荐）
+
+在 `settings.json` 中设置：
+
+```json
+{
+  "env": {
+    "SAVE_PROGRESS_CONTEXT_LIMIT": "200000",
+    "SAVE_PROGRESS_WARNING_THRESHOLD": "0.9"
+  }
+}
+```
+
+支持的模型上下文上限：
+- Claude Sonnet/Opus: 128000 (默认)
+- Claude 3.5 Sonnet: 200000
+- 其他模型: 根据实际调整
+
+### 方法 2: 配置文件
+
+创建 `.claude/save-progress-config.json`：
+
+```json
+{
+  "contextLimit": 200000,
+  "warningThreshold": 0.9,
+  "autoSaveOnOverflow": false,
+  "summariesDir": "summaries"
+}
+```
+
+配置项说明：
+
+| 配置项 | 类型 | 默认值 | 说明 |
+|--------|------|--------|------|
+| `contextLimit` | number | 128000 | 模型上下文上限（tokens） |
+| `warningThreshold` | number | 0.9 | 警告阈值（0-1），如 0.9 表示 90% 时预警 |
+| `autoSaveOnOverflow` | boolean | false | 是否自动保存（无需确认） |
+| `summariesDir` | string | "summaries" | 摘要文件存储目录 |
 
 ## 使用方法
 
@@ -99,13 +146,30 @@ cp .claude/scripts/load-summary.js ~/.claude/scripts/
 3. 自动执行压缩
 4. PostCompact hook 自动加载摘要
 
+### 查看当前配置
+
+```bash
+# 查看完整配置
+node ~/.claude/scripts/save-progress-config.js
+
+# 查看上下文上限
+node ~/.claude/scripts/save-progress-config.js --context-limit
+
+# 查看警告阈值
+node ~/.claude/scripts/save-progress-config.js --warning-threshold
+```
+
 ## 文件结构
 
 ```
 your-project/
 ├── .claude/
-│   └── commands/
-│       └── save-progress.md      # 自定义命令
+│   ├── commands/
+│   │   └── save-progress.md      # 自定义命令
+│   ├── scripts/                  # 用户级脚本（全局安装）
+│   │   ├── load-summary.js
+│   │   └── save-progress-config.js
+│   └── save-progress-config.json # 可选：自定义配置
 ├── summaries/                     # 自动创建的摘要目录
 │   ├── session-summary-2026-03-17-2110.md
 │   ├── session-summary-2026-03-17-2230.md
@@ -134,6 +198,7 @@ your-project/
 1. **Windows 路径**: 在 `settings.json` 中使用正斜杠或双反斜杠，如 `C:/Users/Admin/.claude/scripts/load-summary.js`
 2. **重启生效**: 添加或修改 `.claude/commands/` 下的命令后，需要重启 Claude Code
 3. **命令格式**: 自定义命令必须使用 `.md` 格式（Markdown + YAML frontmatter），不支持 `.json` 格式
+4. **上下文上限**: 根据你的 Claude Code 订阅和模型选择调整 `contextLimit`，默认 128000 适用于大多数场景
 
 ## 故障排除
 
@@ -148,6 +213,12 @@ your-project/
 - 检查 `load-summary.js` 路径是否正确
 - 确认 `summaries/` 目录存在且有 `session-summary-*.md` 文件
 - 检查 `settings.json` 中的 hook 配置
+
+### 配置不生效
+
+- 检查 `.claude/save-progress-config.json` 是否存在且格式正确
+- 检查 `settings.json` 中的 `env` 配置
+- 重启 Claude Code 使环境变量生效
 
 ## 作者
 

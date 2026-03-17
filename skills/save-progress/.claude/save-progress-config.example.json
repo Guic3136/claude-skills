@@ -1,0 +1,7 @@
+{
+  "_comment": "Save Progress 配置文件示例",
+  "contextLimit": 128000,
+  "warningThreshold": 0.9,
+  "autoSaveOnOverflow": false,
+  "summariesDir": "summaries"
+}

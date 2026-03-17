@@ -17,6 +17,20 @@ skills:
     dependencies: []
     status: stable
 
+  - id: claude-hud
+    name: Claude HUD 状态栏
+    version: 1.0.0
+    author: Leo Baher
+    description: 自定义 Claude Code 状态栏，显示模型、Context 使用率、Git 状态、任务进度等
+    category: productivity
+    tags: [statusline, context, git, productivity, agents, todo]
+    path: skills/claude-hud
+    install_by_default: false
+    dependencies:
+      - name: node
+        version: ">=16.0.0"
+    status: stable
+
   # 示例：未来可添加的技能
   # - id: commit-message
   #   name: 提交信息生成器
@@ -57,7 +71,7 @@ categories:
     icon: 🔍
 
 meta:
-  total_skills: 1
-  stable: 1
+  total_skills: 2
+  stable: 2
   experimental: 0
   deprecated: 0

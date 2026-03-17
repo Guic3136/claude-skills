@@ -1,0 +1,29 @@
+name: claude-hud
+description: 自定义 Claude Code 状态栏，显示模型、Context 使用率、Git 状态、任务进度
+version: 1.0.0
+author: Leo Baher
+tags:
+  - statusline
+  - productivity
+  - context-management
+  - git
+
+# 技能入口
+entry_point:
+  type: command
+  command: install.sh
+  description: 安装 HUD 状态栏到 Claude Code
+
+# 配置文件
+config_files:
+  - hud-config.json
+
+# 依赖
+dependencies:
+  - name: node
+    version: ">=16.0.0"
+    description: Node.js 运行时环境
+
+# 安装后消息
+post_install:
+  message: "HUD 安装完成！请重启 Claude Code 查看状态栏。使用 'hud-config' 命令自定义配置。"

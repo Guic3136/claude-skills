@@ -2,7 +2,7 @@
 # 管理仓库中所有技能的元数据
 
 version: "1.0.0"
-last_updated: "2026-03-14"
+last_updated: "2026-03-17"
 
 skills:
   - id: file-organizer
@@ -31,18 +31,19 @@ skills:
         version: ">=16.0.0"
     status: stable
 
-  # 示例：未来可添加的技能
-  # - id: commit-message
-  #   name: 提交信息生成器
-  #   version: 0.1.0
-  #   author: Leo Baher
-  #   description: 自动生成规范的 Git 提交信息
-  #   category: communication
-  #   tags: [git, productivity, automation]
-  #   path: skills/commit-message
-  #   install_by_default: false
-  #   dependencies: []
-  #   status: experimental
+  - id: save-progress
+    name: 会话进度保存
+    version: 1.0.0
+    author: Leo Baher
+    description: 保存 Claude Code 会话进度并在压缩后自动加载，支持手动保存和自动提醒
+    category: productivity
+    tags: [context, productivity, session-management, compact, hooks]
+    path: skills/save-progress
+    install_by_default: false
+    dependencies:
+      - name: node
+        version: ">=16.0.0"
+    status: stable
 
 categories:
   - id: productivity
@@ -71,7 +72,7 @@ categories:
     icon: 🔍
 
 meta:
-  total_skills: 2
-  stable: 2
+  total_skills: 3
+  stable: 3
   experimental: 0
   deprecated: 0

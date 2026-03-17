@@ -67,12 +67,20 @@ export function renderContext(data: HUDData, colors: ColorConfig, format: Format
   );
   const color = getPercentageColor(percentage, colors);
   const progressBar = renderProgressBar(percentage, format);
-  return colorize(progressBar, color);
+  // 达到 90% 时显示警告图标
+  const warningIcon = percentage >= 90 ? '⚠️ ' : '';
+  return colorize(warningIcon + progressBar, color);
 }
 
-// 渲染 Token 数量
+// 渲染 Token 数量（带 k 单位）
 export function renderTokens(data: HUDData, colors: ColorConfig): string {
-  const tokens = `${data.currentContextTokens}/${data.maxContextTokens}`;
+  const formatK = (n: number): string => {
+    if (n >= 1000) {
+      return (n / 1000).toFixed(n % 1000 === 0 ? 0 : 1) + 'k';
+    }
+    return String(n);
+  };
+  const tokens = `${formatK(data.currentContextTokens)}/${formatK(data.maxContextTokens)}`;
   return colorize(tokens, colors.muted);
 }
 

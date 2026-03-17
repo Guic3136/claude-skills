@@ -94,10 +94,20 @@ function renderDynamicItem(
       else if (percentage >= 70) color = colors.warning;
       else if (percentage >= 50) color = colors.info;
 
-      return `${color}${progressBar}\x1b[0m`;
+      // 达到 90% 时显示警告图标
+      const warningIcon = percentage >= 90 ? '⚠️ ' : '';
+
+      return `${color}${warningIcon}${progressBar}\x1b[0m`;
     }
     case 'tokens': {
-      const tokens = `${data.currentContextTokens}/${data.maxContextTokens}`;
+      // 使用 k 单位格式化数字
+      const formatK = (n: number): string => {
+        if (n >= 1000) {
+          return (n / 1000).toFixed(n % 1000 === 0 ? 0 : 1) + 'k';
+        }
+        return String(n);
+      };
+      const tokens = `${formatK(data.currentContextTokens)}/${formatK(data.maxContextTokens)}`;
       return `${colors.muted}${tokens}\x1b[0m`;
     }
     case 'git': {

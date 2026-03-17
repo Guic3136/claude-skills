@@ -31,13 +31,18 @@ Claude HUD 在状态栏中显示以下信息：
 hud-config
 ```
 
+### 配置文件位置
+
+配置文件位于 `~/.claude/hud-config.json`
+
 ### 配置选项
 
 ```json
 {
-  "preset": "essential",
+  "preset": "full",
   "enabled": true,
-  "displayItems": ["model", "context", "git"],
+  "displayItems": ["model", "context", "tokens", "git", "path", "tool", "agent", "todo"],
+  "maxContextTokens": 200000,
   "colors": {
     "primary": "\u001b[36m",
     "success": "\u001b[32m",
@@ -52,10 +57,41 @@ hud-config
     "progressBarWidth": 10,
     "progressBarFilled": "█",
     "progressBarEmpty": "░",
-    "showPercent": true
+    "showPercent": true,
+    "shortenPath": true,
+    "maxPathLength": 30
   }
 }
 ```
+
+### 自定义上下文上限
+
+**重要**：你可以通过修改 `maxContextTokens` 来适配不同的 Claude 模型上下文限制，**无需修改代码**。
+
+**常见模型配置：**
+
+| 模型 | 上下文上限 | maxContextTokens 建议值 |
+|------|-----------|------------------------|
+| Claude Sonnet/Opus | 128,000 | 128000 或 115200 (90%预警) |
+| Claude 3.5 Sonnet | 200,000 | 200000 或 180000 (90%预警) |
+| Claude 3 Opus | 200,000 | 200000 |
+
+**配置示例：**
+
+```json
+{
+  "preset": "full",
+  "maxContextTokens": 200000,
+  "displayItems": ["model", "context", "tokens", "git"]
+}
+```
+
+修改后重启 Claude Code 即可生效。
+
+**工作原理：**
+- HUD 会读取 `maxContextTokens` 作为显示的上限
+- 达到 90% 时显示 ⚠️ 警告图标
+- 例如：设置为 200000，使用 180000 时会显示 `⚠️ [████████░░] 90%`
 
 ## 预设配置
 
@@ -105,6 +141,12 @@ hud-config --preset minimal
 **配置未生效**
 - 运行 `hud-config` 重新加载配置
 - 检查 `~/.claude/hud-config.json` 语法是否正确
+- 确认使用 `maxContextTokens` 而不是其他名称
+
+**上下文上限显示不正确**
+- 检查 `hud-config.json` 中 `maxContextTokens` 是否为数字类型
+- 确认重启了 Claude Code
+- 查看当前配置：`cat ~/.claude/hud-config.json`
 
 ## 许可证
 

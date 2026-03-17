@@ -9,6 +9,7 @@
 - 🔄 **自动加载**: 压缩后自动加载最近的会话摘要
 - 📂 **按时间戳存储**: 避免文件覆盖，支持多版本历史
 - ⚙️ **可配置**: 支持自定义上下文上限（128k/200k等）
+- 🖥️ **跨平台**: 支持 Windows、macOS、Linux
 
 ## 安装
 
@@ -23,21 +24,26 @@ cp skills/save-progress/.claude/commands/save-progress.md .claude/commands/
 
 ### 2. 安装脚本
 
-将 `.claude/scripts/` 下的文件复制到你的用户配置目录：
+将 `.claude/scripts/` 下的文件复制到你的**用户配置目录**：
 
+**macOS / Linux:**
 ```bash
-# Windows
-mkdir -p %USERPROFILE%\.claude\scripts
-cp .claude/scripts/*.js %USERPROFILE%\.claude\scripts\
-
-# macOS/Linux
 mkdir -p ~/.claude/scripts
 cp .claude/scripts/*.js ~/.claude/scripts/
 ```
 
+**Windows:**
+```powershell
+# PowerShell
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.claude\scripts"
+Copy-Item ".claude\scripts\*.js" "$env:USERPROFILE\.claude\scripts\"
+```
+
 ### 3. 配置 Hooks
 
-在你的 `settings.json`（用户级别或项目级别）中添加：
+根据你的操作系统选择对应的配置：
+
+**macOS / Linux** - 使用 `settings.json`：
 
 ```json
 {
@@ -72,7 +78,30 @@ cp .claude/scripts/*.js ~/.claude/scripts/
 }
 ```
 
-**Windows 用户注意**: 将 `~/.claude/scripts/` 替换为实际路径，如 `C:/Users/Admin/.claude/scripts/`
+**Windows** - 使用 `settings.windows.json` 作为参考，修改路径：
+
+```json
+{
+  "hooks": {
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node C:/Users/你的用户名/.claude/scripts/load-summary.js",
+            "statusMessage": "正在加载会话摘要..."
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**⚠️ Windows 用户注意**：
+- 将 `C:/Users/你的用户名/.claude/scripts/` 替换为实际路径
+- 使用正斜杠 `/` 或双反斜杠 `\\`，不要使用单反斜杠
+- 可以参考 `settings.windows.json` 文件
 
 ## 配置上下文上限
 
@@ -148,6 +177,7 @@ cp .claude/scripts/*.js ~/.claude/scripts/
 
 ### 查看当前配置
 
+**macOS / Linux:**
 ```bash
 # 查看完整配置
 node ~/.claude/scripts/save-progress-config.js
@@ -157,6 +187,15 @@ node ~/.claude/scripts/save-progress-config.js --context-limit
 
 # 查看警告阈值
 node ~/.claude/scripts/save-progress-config.js --warning-threshold
+```
+
+**Windows:**
+```powershell
+# 查看完整配置
+node $env:USERPROFILE\.claude\scripts\save-progress-config.js
+
+# 或指定完整路径
+node C:\Users\你的用户名\.claude\scripts\save-progress-config.js --context-limit
 ```
 
 ## 文件结构
@@ -177,6 +216,36 @@ your-project/
 └── .last-summary                  # 指向最新摘要的指针文件
 ```
 
+## 跨平台注意事项
+
+### Windows 特殊说明
+
+1. **路径格式**: 使用正斜杠 `/` 或双反斜杠 `\\`
+   - ✅ 正确: `C:/Users/Admin/.claude/scripts/load-summary.js`
+   - ❌ 错误: `C:\Users\Admin\.claude\scripts\load-summary.js`
+
+2. **脚本位置**: 推荐放在 `%USERPROFILE%\.claude\scripts\`
+   - 实际路径通常是 `C:\Users\你的用户名\.claude\scripts\`
+
+3. **权限问题**: 如果遇到权限错误，尝试：
+   ```powershell
+   # 检查脚本是否存在
+   Test-Path "$env:USERPROFILE\.claude\scripts\load-summary.js"
+   
+   # 手动运行测试
+   node "$env:USERPROFILE\.claude\scripts\load-summary.js"
+   ```
+
+### macOS / Linux 特殊说明
+
+1. **路径格式**: 使用标准的 Unix 路径
+   - `~/.claude/scripts/load-summary.js`
+
+2. **权限问题**: 确保脚本可执行
+   ```bash
+   chmod +x ~/.claude/scripts/*.js
+   ```
+
 ## 配置说明
 
 ### PreCompact Hook
@@ -193,13 +262,6 @@ your-project/
   1. 先检查 `.last-summary` 文件
   2. 如果没有，查找 `summaries/` 目录下最新的 `session-summary-*.md` 文件
 
-## 注意事项
-
-1. **Windows 路径**: 在 `settings.json` 中使用正斜杠或双反斜杠，如 `C:/Users/Admin/.claude/scripts/load-summary.js`
-2. **重启生效**: 添加或修改 `.claude/commands/` 下的命令后，需要重启 Claude Code
-3. **命令格式**: 自定义命令必须使用 `.md` 格式（Markdown + YAML frontmatter），不支持 `.json` 格式
-4. **上下文上限**: 根据你的 Claude Code 订阅和模型选择调整 `contextLimit`，默认 128000 适用于大多数场景
-
 ## 故障排除
 
 ### /save-progress 命令不存在
@@ -210,15 +272,36 @@ your-project/
 
 ### 压缩后不加载摘要
 
-- 检查 `load-summary.js` 路径是否正确
+**macOS / Linux:**
+- 检查 `~/.claude/scripts/load-summary.js` 是否存在
 - 确认 `summaries/` 目录存在且有 `session-summary-*.md` 文件
 - 检查 `settings.json` 中的 hook 配置
+
+**Windows:**
+- 检查 `C:\Users\你的用户名\.claude\scripts\load-summary.js` 是否存在
+- 确认路径使用正斜杠 `/`
+- 尝试手动运行脚本看是否有错误
 
 ### 配置不生效
 
 - 检查 `.claude/save-progress-config.json` 是否存在且格式正确
 - 检查 `settings.json` 中的 `env` 配置
 - 重启 Claude Code 使环境变量生效
+
+### 路径相关问题（Windows）
+
+如果遇到 "Cannot find module" 错误：
+
+1. 确认脚本文件确实存在于指定路径
+2. 在 `settings.json` 中使用绝对路径
+3. 使用正斜杠 `/` 代替反斜杠
+
+## 更新日志
+
+### v1.0.0
+- 初始版本发布
+- 支持手动保存和自动加载
+- 支持跨平台（Windows、macOS、Linux）
 
 ## 作者
 

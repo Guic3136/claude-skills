@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "上下文窗口即将达到上限并自动压缩。询问用户：'⚠️ 上下文即将溢出，是否先保存当前进展到文件？' 如果用户同意，创建一个带时间戳的文件 summaries/session-summary-YYYY-MM-DD-HHMM.md，记录：1) 当前任务目标 2) 已完成的工作 3) 关键决策和发现 4) 下一步计划。如果 summaries 目录不存在则自动创建。然后继续压缩。",
+            "statusMessage": "上下文即将溢出，询问是否保存进度..."
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.claude/scripts/load-summary.js",
+            "statusMessage": "正在加载会话摘要..."
+          }
+        ]
+      }
+    ]
+  }
+}

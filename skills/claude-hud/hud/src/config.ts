@@ -11,7 +11,9 @@ export type DisplayItem =
   | 'path'
   | 'tool'
   | 'agent'
-  | 'todo';
+  | 'todo'
+  | 'speed'
+  | 'speed-avg';
 
 // 颜色配置
 export interface ColorConfig {
@@ -71,7 +73,7 @@ export const defaultFormat: FormatConfig = {
 export const presets: Record<string, HUDConfig> = {
   full: {
     preset: 'full',
-    displayItems: ['model', 'context', 'tokens', 'git', 'path', 'tool', 'agent', 'todo'],
+    displayItems: ['model', 'context', 'tokens', 'speed', 'speed-avg', 'git', 'path', 'tool', 'agent', 'todo'],
     colors: defaultColors,
     format: defaultFormat,
     enabled: true,
@@ -262,7 +264,7 @@ export function validateConfig(config: unknown): config is HUDConfig {
 
   // 验证 displayItems
   if (c.displayItems) {
-    const validItems: DisplayItem[] = ['model', 'context', 'tokens', 'git', 'path', 'tool', 'agent', 'todo'];
+    const validItems: DisplayItem[] = ['model', 'context', 'tokens', 'git', 'path', 'tool', 'agent', 'todo', 'speed', 'speed-avg'];
     if (!Array.isArray(c.displayItems) || !c.displayItems.every(item => validItems.includes(item))) {
       return false;
     }

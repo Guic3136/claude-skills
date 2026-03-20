@@ -3,6 +3,7 @@ import { renderStatusBar, formatAgentStatus, renderCompactTodoProgress, renderIt
 import { parseHistoryFile, getRunningAgents, readTasksFromSystem, calculateTaskProgress } from './transcript';
 import { getGitStatus, formatGitStatus, getShortPath } from './git';
 import { loadConfig, HUDConfig, DisplayItem, ConfigWatcher } from './config';
+import { calcCurrentSpeed } from './speed-tracker';
 
 // 扩展的 HUD 数据接口，包含动态获取的信息
 interface ExtendedHUDData extends HUDData {
@@ -18,6 +19,8 @@ interface ExtendedHUDData extends HUDData {
     completed: number;
     total: number;
   };
+  speed?: number;
+  speedAvg?: number;
 }
 
 // 根据配置收集所有需要的数据
@@ -50,6 +53,30 @@ async function collectData(baseData: HUDData, config: HUDConfig): Promise<Extend
       };
     } catch {
       data.todo = { completed: 0, total: 0 };
+    }
+  }
+
+  // 计算 token 速率（增量当前速率）
+  if (config.displayItems.includes('speed')) {
+    if (baseData.totalOutputTokens && baseData.totalApiDurationMs && baseData.sessionId) {
+      const speed = calcCurrentSpeed(
+        baseData.totalOutputTokens,
+        baseData.totalApiDurationMs,
+        baseData.sessionId
+      );
+      if (speed > 0) {
+        data.speed = speed;
+      }
+    }
+  }
+
+  // 计算会话平均速率
+  if (config.displayItems.includes('speed-avg')) {
+    if (baseData.totalOutputTokens && baseData.totalApiDurationMs && baseData.totalApiDurationMs > 0) {
+      const avg = baseData.totalOutputTokens / (baseData.totalApiDurationMs / 1000);
+      if (isFinite(avg) && !isNaN(avg) && avg > 0) {
+        data.speedAvg = avg;
+      }
     }
   }
 
@@ -145,6 +172,21 @@ function renderDynamicItem(
         return `${colors.success}📋 ${completed}/${total} (${percentage}%)\x1b[0m`;
       }
       return '';
+    }
+    case 'speed': {
+      const speed = data.speed || 0;
+      if (speed === 0) return '';
+      const formatted = speed < 10 ? speed.toFixed(1) : Math.round(speed).toString();
+      let color = colors.primary;
+      if (speed < 20) color = colors.warning;
+      else if (speed > 80) color = colors.success;
+      return `${color}⚡${formatted} tok/s\x1b[0m`;
+    }
+    case 'speed-avg': {
+      const avg = data.speedAvg || 0;
+      if (avg === 0) return '';
+      const formatted = avg < 10 ? avg.toFixed(1) : Math.round(avg).toString();
+      return `${colors.muted}≈${formatted} tok/s\x1b[0m`;
     }
     default:
       return '';

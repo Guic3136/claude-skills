@@ -45,6 +45,7 @@ export interface HUDConfig {
   format: FormatConfig;
   enabled: boolean;
   maxContextTokens?: number; // 自定义上下文窗口上限，默认为 200000
+  modelContextMap?: Record<string, number>; // 模型ID → 上下文大小映射
 }
 
 // 默认颜色配置
@@ -167,6 +168,7 @@ export function mergeConfig(userConfig: Partial<HUDConfig>): HUDConfig {
     format: { ...baseConfig.format, ...userConfig.format },
     enabled: userConfig.enabled !== undefined ? userConfig.enabled : baseConfig.enabled,
     maxContextTokens: userConfig.maxContextTokens !== undefined ? userConfig.maxContextTokens : baseConfig.maxContextTokens,
+    modelContextMap: userConfig.modelContextMap !== undefined ? userConfig.modelContextMap : baseConfig.modelContextMap,
   };
 }
 

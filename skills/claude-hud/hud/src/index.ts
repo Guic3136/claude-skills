@@ -262,6 +262,14 @@ async function main() {
     data.maxContextTokens = config.maxContextTokens;
   }
 
+  // 根据模型名查找映射的上下文大小（优先级高于全局 maxContextTokens）
+  if (config.modelContextMap && data.model) {
+    const mappedSize = config.modelContextMap[data.model];
+    if (mappedSize && mappedSize > 0) {
+      data.maxContextTokens = mappedSize;
+    }
+  }
+
   // 使用配置系统渲染
   const statusBar = await renderWithConfig(data, config);
 

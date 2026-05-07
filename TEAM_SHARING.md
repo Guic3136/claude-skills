@@ -115,19 +115,35 @@ git submodule update --remote
 ```bash
 # 检查技能目录
 ls ~/.claude/skills/
-# 应该看到: file-organizer
+# 应该看到: file-organizer, claude-hud, save-progress
 
 # 在 Claude Code 中测试
 cd their-project
 claude
 ```
 
-然后问 Claude：
+### file-organizer 验证
+
+问 Claude：
 ```
 "创建一个 Python 测试脚本"
 ```
 
 如果 Claude 自动保存到 `scripts/python/` 目录，说明安装成功！
+
+### claude-hud 验证
+
+重启 Claude Code 后，输入框下方应出现状态栏，显示模型名称、Context 使用率、Git 分支等信息。
+
+如果没有显示，检查：
+```bash
+ls ~/.claude/plugins/claude-hud/dist/index.js
+cat ~/.claude/settings.json | grep statusLine
+```
+
+### save-progress 验证
+
+在 Claude Code 中执行压缩操作后，会自动加载之前的会话进度。
 
 ---
 
@@ -157,16 +173,22 @@ cp -r skills/file-organizer ~/.claude/skills/
 发给团队成员的快捷指令：
 
 ```bash
-# 一键安装（Linux/Mac）
+# 一键安装所有技能（Linux/Mac）
 git clone https://github.com/Guic3136/claude-skills.git && \
 cd claude-skills && \
-./scripts/install.sh && \
+python3 scripts/install.py --all && \
+echo "安装完成！请重启 Claude Code"
+
+# 只安装 HUD 状态栏（Linux/Mac）
+git clone https://github.com/Guic3136/claude-skills.git && \
+cd claude-skills && \
+python3 scripts/install.py claude-hud && \
 echo "安装完成！请重启 Claude Code"
 
 # 一键安装（Windows PowerShell）
 git clone https://github.com/Guic3136/claude-skills.git; \
 cd claude-skills; \
-.\scripts\install.ps1; \
+python scripts\install.py --all; \
 Write-Host "安装完成！请重启 Claude Code"
 ```
 
@@ -187,12 +209,25 @@ A: 可以，每个技能一个子目录：
 ```
 ~/.claude/skills/
 ├── file-organizer/
-├── another-skill/
+├── claude-hud/
+├── save-progress/
 └── ...
 ```
+
+### Q: HUD 状态栏安装后没有显示？
+A: 检查以下几点：
+1. `~/.claude/settings.json` 中是否包含 `statusLine` 配置
+2. `~/.claude/plugins/claude-hud/dist/index.js` 文件是否存在
+3. Node.js 版本是否 >= 16
+4. 运行 `HUD_DEBUG=2 node ~/.claude/plugins/claude-hud/dist/index.js` 查看报错
+
+### Q: HUD 显示的模型名称不正确？
+A: HUD 会自动从 settings.json、CC Switch、环境变量中读取模型信息。如果使用 CC Switch，确保切换后 settings.json 中的 model 字段已更新。
 
 ### Q: 如何卸载技能？
 A: 直接删除技能目录：
 ```bash
 rm -rf ~/.claude/skills/file-organizer
+rm -rf ~/.claude/skills/claude-hud
+rm -rf ~/.claude/skills/save-progress
 ```

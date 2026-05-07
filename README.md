@@ -98,7 +98,9 @@ claude
 ```
 claude-skills/
 ├── skills/                        # ⭐ 所有技能存放于此
-│   └── file-organizer/           # 技能: 文件自动分类
+│   ├── file-organizer/           # 技能: 文件自动分类
+│   ├── claude-hud/               # 技能: 自定义状态栏（HUD）
+│   └── save-progress/            # 技能: 会话进度保存
 ├── templates/                     # 开发模板
 │   └── skill-template/           # 新建技能的模板
 ├── docs/                         # 开发文档

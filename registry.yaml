@@ -8,7 +8,7 @@ skills:
   - id: file-organizer
     name: 文件自动分类
     version: 1.0.0
-    author: Leo Baher
+    author: Guic3136
     description: 工作区文件自动分类 - 创建即分类，支持团队协作
     category: productivity
     tags: [file-management, organization, workspace, team]
@@ -20,7 +20,7 @@ skills:
   - id: claude-hud
     name: Claude HUD 状态栏
     version: 1.0.0
-    author: Leo Baher
+    author: Guic3136
     description: 自定义 Claude Code 状态栏，显示模型、Context 使用率、Git 状态、任务进度等
     category: productivity
     tags: [statusline, context, git, productivity, agents, todo]
@@ -34,7 +34,7 @@ skills:
   - id: save-progress
     name: 会话进度保存
     version: 1.0.0
-    author: Leo Baher
+    author: Guic3136
     description: 保存 Claude Code 会话进度并在压缩后自动加载，支持手动保存和自动提醒
     category: productivity
     tags: [context, productivity, session-management, compact, hooks]

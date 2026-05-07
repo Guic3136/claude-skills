@@ -221,10 +221,21 @@ def main():
             print()
             print("🎉 安装完成！请重启 Claude Code")
             print()
-            print("测试方法:")
-            print("  1. 重启 Claude Code")
-            print("  2. 输入: 创建一个 Python 脚本")
-            print("  3. 观察是否自动保存到 scripts/python/ 目录")
+
+            if skill_name == "claude-hud":
+                print("验证方法:")
+                print("  1. 重启 Claude Code")
+                print("  2. 输入框下方应出现状态栏")
+                print("  3. 如未显示，检查 ~/.claude/settings.json 中的 statusLine 配置")
+            elif skill_name == "save-progress":
+                print("验证方法:")
+                print("  1. 重启 Claude Code")
+                print("  2. 执行压缩操作后，会自动加载之前的会话进度")
+            else:
+                print("测试方法:")
+                print("  1. 重启 Claude Code")
+                print("  2. 输入: 创建一个 Python 脚本")
+                print("  3. 观察是否自动保存到 scripts/python/ 目录")
 
 
 if __name__ == "__main__":

@@ -4,11 +4,79 @@ export interface HUDData {
   model?: string;
   sessionId?: string;
   timestamp?: string;
+  totalOutputTokens?: number;
+  totalApiDurationMs?: number;
+}
+
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+
+// 调试日志函数
+export function logDebug(message: string, data?: unknown, level: LogLevel = 'debug'): void {
+  if (!process.env.HUD_DEBUG) return;
+
+  const fs = require('fs');
+  const logFile = process.env.HUD_DEBUG_LOG || '/tmp/hud-debug.log';
+
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    pid: process.pid,
+    level,
+    message,
+    data
+  };
+
+  try {
+    fs.appendFileSync(logFile, JSON.stringify(logEntry) + '\n');
+  } catch {
+    // ignore
+  }
+
+  // HUD_DEBUG=2 时同时输出到 stderr（实时调试）
+  if (process.env.HUD_DEBUG === '2') {
+    console.error(`[HUD ${level.toUpperCase()}] ${message}`, data !== undefined ? JSON.stringify(data) : '');
+  }
+}
+
+// 从 stdin JSON 中提取模型名称，检查多个可能的字段
+function extractModel(data: any): string | undefined {
+  if (data.model && typeof data.model === 'object') {
+    // 按优先级检查对象中的多个可能字段
+    const modelObj = data.model;
+    return modelObj.id ||
+           modelObj.name ||
+           modelObj.model ||
+           modelObj.display_name ||
+           modelObj.apiName ||
+           undefined;
+  }
+  if (typeof data.model === 'string') {
+    return data.model;
+  }
+  // 顶层字段回退
+  if (typeof data.model_id === 'string') {
+    return data.model_id;
+  }
+  if (typeof data.model_name === 'string') {
+    return data.model_name;
+  }
+  return undefined;
 }
 
 export function parseJSONData(jsonString: string): HUDData | null {
   try {
+    logDebug('Raw input received', jsonString.substring(0, 2000));
+
     const data = JSON.parse(jsonString);
+
+    logDebug('Parsed data structure', {
+      hasContextWindow: !!data.context_window,
+      contextWindowKeys: data.context_window ? Object.keys(data.context_window) : null,
+      usedPercentage: data.context_window?.used_percentage,
+      contextWindowSize: data.context_window?.context_window_size,
+      modelType: typeof data.model,
+      modelValue: typeof data.model === 'object' ? data.model : data.model,
+      modelKeys: data.model && typeof data.model === 'object' ? Object.keys(data.model) : null,
+    });
 
     let currentTokens: number;
     let maxTokens: number;
@@ -25,18 +93,14 @@ export function parseJSONData(jsonString: string): HUDData | null {
       const usedPercentage = typeof cw.used_percentage === 'number' ? cw.used_percentage : 0;
       currentTokens = Math.round((usedPercentage / 100) * maxTokens);
 
-      // 模型名称可能在 data.model.id 中
-      if (data.model && typeof data.model === 'object') {
-        model = data.model.id || data.model.display_name;
-      } else if (typeof data.model === 'string') {
-        model = data.model;
-      }
+      // 使用增强的模型提取逻辑
+      model = extractModel(data);
     } else if (typeof data.currentContextTokens === 'number' &&
                typeof data.maxContextTokens === 'number') {
       // 旧格式直接兼容
       currentTokens = data.currentContextTokens;
       maxTokens = data.maxContextTokens;
-      model = typeof data.model === 'string' ? data.model : undefined;
+      model = typeof data.model === 'string' ? data.model : extractModel(data);
     } else {
       console.error('Invalid data: missing required token fields');
       return null;
@@ -46,15 +110,37 @@ export function parseJSONData(jsonString: string): HUDData | null {
     currentTokens = Math.max(0, currentTokens);
     maxTokens = Math.max(1, maxTokens); // 至少为1，避免除零
 
-    return {
+    // 解析 token 速率相关字段
+    let totalOutputTokens: number | undefined;
+    let totalApiDurationMs: number | undefined;
+
+    if (data.context_window) {
+      const cw = data.context_window;
+      if (typeof cw.total_output_tokens === 'number') {
+        totalOutputTokens = cw.total_output_tokens;
+      }
+    }
+
+    if (data.cost && typeof data.cost.total_api_duration_ms === 'number') {
+      totalApiDurationMs = data.cost.total_api_duration_ms;
+    }
+
+    const result = {
       currentContextTokens: currentTokens,
       maxContextTokens: maxTokens,
       model: model || 'claude',
       sessionId: data.session_id || data.sessionId,
-      timestamp: data.timestamp
+      timestamp: data.timestamp,
+      totalOutputTokens,
+      totalApiDurationMs,
     };
+
+    logDebug('Parsed result', result);
+
+    return result;
   } catch (error) {
     console.error('Failed to parse JSON:', error);
+    logDebug('Parse error', error);
     return null;
   }
 }

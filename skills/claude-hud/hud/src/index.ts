@@ -1,9 +1,50 @@
-import { readStdin, parseJSONData, HUDData } from './stdin';
+import { readStdin, parseJSONData, HUDData, logDebug } from './stdin';
 import { renderStatusBar, formatAgentStatus, renderCompactTodoProgress, renderItem } from './render';
 import { parseHistoryFile, getRunningAgents, readTasksFromSystem, calculateTaskProgress } from './transcript';
 import { getGitStatus, formatGitStatus, getShortPath } from './git';
-import { loadConfig, HUDConfig, DisplayItem, ConfigWatcher } from './config';
+import { loadConfig, HUDConfig, DisplayItem, ConfigWatcher, lookupModelContextSize } from './config';
 import { calcCurrentSpeed } from './speed-tracker';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+
+// 从 ~/.claude/settings.json 读取 model 字段
+function detectModelFromSettings(): string | undefined {
+  try {
+    const settingsPath = path.join(os.homedir(), '.claude', 'settings.json');
+    if (!fs.existsSync(settingsPath)) return undefined;
+    const content = fs.readFileSync(settingsPath, 'utf-8');
+    const settings = JSON.parse(content);
+    if (typeof settings.model === 'string' && settings.model.trim()) {
+      return settings.model.trim();
+    }
+  } catch {
+    // ignore
+  }
+  return undefined;
+}
+
+// 从 CC Switch 数据库读取当前 provider 的 model 配置
+function detectModelFromCCSwitch(): string | undefined {
+  try {
+    const dbPath = path.join(os.homedir(), '.cc-switch', 'cc-switch.db');
+    if (!fs.existsSync(dbPath)) return undefined;
+
+    // 使用 sqlite3 CLI 查询当前 provider 的 settings_config
+    const { execSync } = require('child_process');
+    const sql = `SELECT settings_config FROM providers WHERE is_current = 1 AND app_type = 'claude' LIMIT 1`;
+    const result = execSync(`sqlite3 "${dbPath}" "${sql}"`, { encoding: 'utf-8', timeout: 5000 }).trim();
+    if (!result) return undefined;
+
+    const config = JSON.parse(result);
+    if (typeof config.model === 'string' && config.model.trim()) {
+      return config.model.trim();
+    }
+  } catch {
+    // ignore
+  }
+  return undefined;
+}
 
 // 扩展的 HUD 数据接口，包含动态获取的信息
 interface ExtendedHUDData extends HUDData {
@@ -257,18 +298,69 @@ async function main() {
   // 加载配置
   const config = loadConfig();
 
-  // 如果用户配置了自定义上下文窗口上限，则覆盖从 Claude Code 接收到的值
-  if (config.maxContextTokens && config.maxContextTokens > 0) {
-    data.maxContextTokens = config.maxContextTokens;
+  // 记录 stdin 原始模型信息
+  const stdinModel = data.model;
+  const stdinMaxTokens = data.maxContextTokens;
+
+  // 模型名称解析：settings.json / CC Switch 明确配置的 model 优先于 stdin
+  // 因为 CC Switch 等外部工具通过修改配置文件切换模型，stdin 中的值可能是缓存的陈旧值
+  let resolvedModel = data.model;
+  let modelSource = 'stdin';
+
+  // 优先级 1：~/.claude/settings.json（CC Switch 直接修改的配置文件）
+  const settingsModel = detectModelFromSettings();
+  if (settingsModel) {
+    resolvedModel = settingsModel;
+    modelSource = 'settings.json';
   }
 
-  // 根据模型名查找映射的上下文大小（优先级高于全局 maxContextTokens）
-  if (config.modelContextMap && data.model) {
-    const mappedSize = config.modelContextMap[data.model];
-    if (mappedSize && mappedSize > 0) {
-      data.maxContextTokens = mappedSize;
+  // 优先级 2：CC Switch 数据库（如果 settings.json 中没有 model 字段）
+  if (!settingsModel) {
+    const ccSwitchModel = detectModelFromCCSwitch();
+    if (ccSwitchModel) {
+      resolvedModel = ccSwitchModel;
+      modelSource = 'cc-switch';
     }
   }
+
+  // 优先级 3：环境变量（兜底）
+  if (!settingsModel && !detectModelFromCCSwitch()) {
+    const envModel = process.env.CLAUDE_MODEL || process.env.ANTHROPIC_MODEL || process.env.MODEL;
+    if (envModel && envModel.trim()) {
+      resolvedModel = envModel.trim();
+      modelSource = 'env';
+    }
+  }
+
+  data.model = resolvedModel;
+
+  // 使用 lookupModelContextSize 解析上下文大小（精确 → 前缀 → 内置）
+  let resolvedMaxTokens = data.maxContextTokens;
+  let contextSource = 'stdin';
+
+  const lookup = resolvedModel ? lookupModelContextSize(resolvedModel, config.modelContextMap) : null;
+  if (lookup) {
+    resolvedMaxTokens = lookup.size;
+    contextSource = lookup.matchType;
+  } else if (config.maxContextTokens && config.maxContextTokens > 0) {
+    // 回退到用户全局配置
+    resolvedMaxTokens = config.maxContextTokens;
+    contextSource = 'global-config';
+  }
+
+  data.maxContextTokens = resolvedMaxTokens;
+
+  logDebug('Model resolution', {
+    stdinModel,
+    resolvedModel,
+    modelSource,
+    stdinMaxTokens,
+    resolvedMaxTokens,
+    contextSource,
+    settingsModel: detectModelFromSettings() || null,
+    ccSwitchModel: detectModelFromCCSwitch() || null,
+    envModel: (process.env.CLAUDE_MODEL || process.env.ANTHROPIC_MODEL || process.env.MODEL) || null,
+  }, 'info');
 
   // 使用配置系统渲染
   const statusBar = await renderWithConfig(data, config);

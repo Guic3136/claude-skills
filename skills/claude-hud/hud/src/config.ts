@@ -48,6 +48,20 @@ export interface HUDConfig {
   modelContextMap?: Record<string, number>; // 模型ID → 上下文大小映射
 }
 
+// 内置模型上下文窗口大小（兜底映射）
+export const BUILTIN_MODEL_CONTEXTS: Record<string, number> = {
+  'claude-opus-4-7': 200000,
+  'claude-sonnet-4-6': 200000,
+  'claude-haiku-4-5': 200000,
+  'claude-3-5-sonnet': 200000,
+  'claude-3-5-haiku': 200000,
+  'claude-3-opus': 200000,
+  'claude-3-sonnet': 200000,
+  'claude-3-haiku': 200000,
+  'mimo-v2': 262144,
+  'mimo-v2-pro': 262144,
+};
+
 // 默认颜色配置
 export const defaultColors: ColorConfig = {
   primary: '\x1b[36m',    // 青色
@@ -249,6 +263,46 @@ export class ConfigWatcher {
 export function resetConfig(): HUDConfig {
   saveConfig(defaultConfig);
   return defaultConfig;
+}
+
+// 模型上下文大小查找（支持精确匹配 → 前缀匹配 → 内置匹配）
+export function lookupModelContextSize(
+  modelName: string,
+  modelContextMap?: Record<string, number>
+): { size: number; matchedKey: string; matchType: 'exact' | 'prefix' | 'builtin' } | null {
+  if (!modelName) {
+    return null;
+  }
+
+  // 1. 精确匹配用户配置的 modelContextMap
+  if (modelContextMap) {
+    const exactSize = modelContextMap[modelName];
+    if (exactSize && exactSize > 0) {
+      return { size: exactSize, matchedKey: modelName, matchType: 'exact' };
+    }
+
+    // 2. 前缀匹配：找最长匹配前缀
+    let bestMatch: { key: string; size: number } | null = null;
+    for (const [key, size] of Object.entries(modelContextMap)) {
+      if (size > 0 && modelName.startsWith(key)) {
+        if (!bestMatch || key.length > bestMatch.key.length) {
+          bestMatch = { key, size };
+        }
+      }
+    }
+    if (bestMatch) {
+      return { size: bestMatch.size, matchedKey: bestMatch.key, matchType: 'prefix' };
+    }
+  }
+
+  // 3. 内置匹配
+  for (const [key, size] of Object.entries(BUILTIN_MODEL_CONTEXTS)) {
+    if (modelName === key || modelName.startsWith(key + '-')) {
+      return { size, matchedKey: key, matchType: 'builtin' };
+    }
+  }
+
+  return null;
 }
 
 // 验证配置

@@ -43,14 +43,16 @@ Examples:
   hud-config disable
 
 Display Items:
-  model    - Model name (e.g., claude-sonnet-4-6)
-  context  - Context usage progress bar
-  tokens   - Token count (current/max)
-  git      - Git branch and status
-  path     - Current project path
-  tool     - Active tool name
-  agent    - Running agents
-  todo     - Task progress
+  model     - Model name (e.g., claude-sonnet-4-6)
+  context   - Context usage progress bar
+  tokens    - Token count (current/max)
+  git       - Git branch and status
+  path      - Current project path
+  tool      - Active tool name
+  agent     - Running agents
+  todo      - Task progress
+  speed     - Current token generation speed
+  speed-avg - Average token generation speed
 
 Presets:
   full      - Show all items
@@ -121,7 +123,7 @@ function setValue(key: string, value: string): void {
 
 // 设置显示项
 function setItems(itemsStr: string): void {
-  const validItems: DisplayItem[] = ['model', 'context', 'tokens', 'git', 'path', 'tool', 'agent', 'todo'];
+  const validItems: DisplayItem[] = ['model', 'context', 'tokens', 'git', 'path', 'tool', 'agent', 'todo', 'speed', 'speed-avg'];
   const items = itemsStr.split(',').map(item => item.trim() as DisplayItem);
 
   const invalidItems = items.filter(item => !validItems.includes(item));

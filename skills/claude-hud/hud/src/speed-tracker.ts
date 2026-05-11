@@ -1,11 +1,12 @@
 import * as fs from 'fs';
+import * as os from 'os';
 
 interface SpeedSnapshot {
   totalOutputTokens: number;
   totalApiDurationMs: number;
 }
 
-const SNAPSHOT_DIR = '/tmp';
+const SNAPSHOT_DIR = process.env.HUD_TMP_DIR || os.tmpdir();
 
 function snapshotPath(sessionId: string): string {
   return `${SNAPSHOT_DIR}/hud-speed-${sessionId}.json`;

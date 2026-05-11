@@ -28,7 +28,7 @@ echo ""
 echo "[1/5] Creating plugin directory..."
 mkdir -p "$PLUGIN_DIR/src"
 
-# Copy source files
+# Copy source files (from hud/ subdirectory in repo)
 echo "[2/5] Copying source files..."
 cp -f "$SCRIPT_DIR/hud/src/"*.ts "$PLUGIN_DIR/src/"
 cp -f "$SCRIPT_DIR/hud/package.json" "$PLUGIN_DIR/"

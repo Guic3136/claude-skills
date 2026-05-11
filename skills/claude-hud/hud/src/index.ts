@@ -30,10 +30,30 @@ function detectModelFromCCSwitch(): string | undefined {
     const dbPath = path.join(os.homedir(), '.cc-switch', 'cc-switch.db');
     if (!fs.existsSync(dbPath)) return undefined;
 
-    // 使用 sqlite3 CLI 查询当前 provider 的 settings_config
     const { execSync } = require('child_process');
     const sql = `SELECT settings_config FROM providers WHERE is_current = 1 AND app_type = 'claude' LIMIT 1`;
-    const result = execSync(`sqlite3 "${dbPath}" "${sql}"`, { encoding: 'utf-8', timeout: 5000 }).trim();
+
+    // 尝试多个 sqlite3 路径：系统 PATH -> 插件目录 -> 常见安装位置
+    const sqlitePaths = ['sqlite3'];
+    if (process.platform === 'win32') {
+      const pluginDir = path.join(os.homedir(), '.claude', 'plugins', 'claude-hud');
+      sqlitePaths.unshift(
+        path.join(pluginDir, 'sqlite3.exe'),
+        path.join(pluginDir, 'sqlite3', 'sqlite3.exe')
+      );
+    }
+
+    let result: string | undefined;
+    for (const sqliteCmd of sqlitePaths) {
+      try {
+        result = execSync(`"${sqliteCmd}" "${dbPath}" "${sql}"`, { encoding: 'utf-8', timeout: 5000 }).trim();
+        if (result) break;
+      } catch {
+        // 尝试下一个路径
+        continue;
+      }
+    }
+
     if (!result) return undefined;
 
     const config = JSON.parse(result);
@@ -269,7 +289,7 @@ async function main() {
       inputPreview: input?.substring(0, 500) || 'empty',
       cwd: process.cwd()
     };
-    fs.writeFileSync('/tmp/hud-debug.json', JSON.stringify(debugInfo, null, 2));
+    fs.writeFileSync(path.join(os.tmpdir(), 'hud-debug.json'), JSON.stringify(debugInfo, null, 2));
   }
 
   let data: HUDData;

@@ -44,33 +44,19 @@ export interface HUDConfig {
   colors: ColorConfig;
   format: FormatConfig;
   enabled: boolean;
-  maxContextTokens?: number; // 自定义上下文窗口上限，默认为 200000
-  modelContextMap?: Record<string, number>; // 模型ID → 上下文大小映射
+  maxContextTokens?: number;
+  modelContextMap?: Record<string, number>;
 }
-
-// 内置模型上下文窗口大小（兜底映射）
-export const BUILTIN_MODEL_CONTEXTS: Record<string, number> = {
-  'claude-opus-4-7': 200000,
-  'claude-sonnet-4-6': 200000,
-  'claude-haiku-4-5': 200000,
-  'claude-3-5-sonnet': 200000,
-  'claude-3-5-haiku': 200000,
-  'claude-3-opus': 200000,
-  'claude-3-sonnet': 200000,
-  'claude-3-haiku': 200000,
-  'mimo-v2': 262144,
-  'mimo-v2-pro': 262144,
-};
 
 // 默认颜色配置
 export const defaultColors: ColorConfig = {
-  primary: '\x1b[36m',    // 青色
-  secondary: '\x1b[35m',  // 洋红
-  success: '\x1b[32m',    // 绿色
-  warning: '\x1b[33m',    // 黄色
-  error: '\x1b[31m',      // 红色
-  info: '\x1b[34m',       // 蓝色
-  muted: '\x1b[90m',      // 灰色
+  primary: '\x1b[36m',
+  secondary: '\x1b[35m',
+  success: '\x1b[32m',
+  warning: '\x1b[33m',
+  error: '\x1b[31m',
+  info: '\x1b[34m',
+  muted: '\x1b[90m',
 };
 
 // 默认格式配置
@@ -88,7 +74,7 @@ export const defaultFormat: FormatConfig = {
 export const presets: Record<string, HUDConfig> = {
   full: {
     preset: 'full',
-    displayItems: ['model', 'context', 'tokens', 'speed', 'speed-avg', 'git', 'path', 'tool', 'agent', 'todo'],
+    displayItems: ['model', 'context', 'tokens', 'git', 'path', 'tool', 'agent', 'todo', 'speed'],
     colors: defaultColors,
     format: defaultFormat,
     enabled: true,
@@ -108,7 +94,7 @@ export const presets: Record<string, HUDConfig> = {
     displayItems: ['context'],
     colors: {
       ...defaultColors,
-      primary: '\x1b[0m',  // 无颜色
+      primary: '\x1b[0m',
     },
     format: {
       ...defaultFormat,
@@ -170,7 +156,6 @@ export function saveConfig(config: HUDConfig): void {
 
 // 合并用户配置与默认配置
 export function mergeConfig(userConfig: Partial<HUDConfig>): HUDConfig {
-  // 如果指定了预设，先加载预设
   const baseConfig = userConfig.preset && presets[userConfig.preset]
     ? presets[userConfig.preset]
     : defaultConfig;
@@ -182,7 +167,7 @@ export function mergeConfig(userConfig: Partial<HUDConfig>): HUDConfig {
     format: { ...baseConfig.format, ...userConfig.format },
     enabled: userConfig.enabled !== undefined ? userConfig.enabled : baseConfig.enabled,
     maxContextTokens: userConfig.maxContextTokens !== undefined ? userConfig.maxContextTokens : baseConfig.maxContextTokens,
-    modelContextMap: userConfig.modelContextMap !== undefined ? userConfig.modelContextMap : baseConfig.modelContextMap,
+    modelContextMap: userConfig.modelContextMap || baseConfig.modelContextMap,
   };
 }
 
@@ -208,31 +193,26 @@ export class ConfigWatcher {
     this.currentConfig = loadConfig();
   }
 
-  // 获取当前配置
   getConfig(): HUDConfig {
     return this.currentConfig;
   }
 
-  // 重新加载配置
   reload(): HUDConfig {
     this.currentConfig = loadConfig();
     this.notifyWatchers();
     return this.currentConfig;
   }
 
-  // 监听配置变化
   onChange(callback: (config: HUDConfig) => void): void {
     this.watchers.push(callback);
   }
 
-  // 通知所有监听器
   private notifyWatchers(): void {
     for (const watcher of this.watchers) {
       watcher(this.currentConfig);
     }
   }
 
-  // 启动文件监听（热加载）
   startWatching(): void {
     if (this.fsWatcher) {
       return;
@@ -250,7 +230,6 @@ export class ConfigWatcher {
     }
   }
 
-  // 停止文件监听
   stopWatching(): void {
     if (this.fsWatcher) {
       this.fsWatcher.close();
@@ -259,53 +238,11 @@ export class ConfigWatcher {
   }
 }
 
-// 重置为默认配置
 export function resetConfig(): HUDConfig {
   saveConfig(defaultConfig);
   return defaultConfig;
 }
 
-// 模型上下文大小查找（支持精确匹配 → 前缀匹配 → 内置匹配）
-export function lookupModelContextSize(
-  modelName: string,
-  modelContextMap?: Record<string, number>
-): { size: number; matchedKey: string; matchType: 'exact' | 'prefix' | 'builtin' } | null {
-  if (!modelName) {
-    return null;
-  }
-
-  // 1. 精确匹配用户配置的 modelContextMap
-  if (modelContextMap) {
-    const exactSize = modelContextMap[modelName];
-    if (exactSize && exactSize > 0) {
-      return { size: exactSize, matchedKey: modelName, matchType: 'exact' };
-    }
-
-    // 2. 前缀匹配：找最长匹配前缀
-    let bestMatch: { key: string; size: number } | null = null;
-    for (const [key, size] of Object.entries(modelContextMap)) {
-      if (size > 0 && modelName.startsWith(key)) {
-        if (!bestMatch || key.length > bestMatch.key.length) {
-          bestMatch = { key, size };
-        }
-      }
-    }
-    if (bestMatch) {
-      return { size: bestMatch.size, matchedKey: bestMatch.key, matchType: 'prefix' };
-    }
-  }
-
-  // 3. 内置匹配
-  for (const [key, size] of Object.entries(BUILTIN_MODEL_CONTEXTS)) {
-    if (modelName === key || modelName.startsWith(key + '-')) {
-      return { size, matchedKey: key, matchType: 'builtin' };
-    }
-  }
-
-  return null;
-}
-
-// 验证配置
 export function validateConfig(config: unknown): config is HUDConfig {
   if (typeof config !== 'object' || config === null) {
     return false;
@@ -313,12 +250,10 @@ export function validateConfig(config: unknown): config is HUDConfig {
 
   const c = config as Partial<HUDConfig>;
 
-  // 验证 preset
   if (c.preset && !['full', 'essential', 'minimal', 'custom'].includes(c.preset)) {
     return false;
   }
 
-  // 验证 displayItems
   if (c.displayItems) {
     const validItems: DisplayItem[] = ['model', 'context', 'tokens', 'git', 'path', 'tool', 'agent', 'todo', 'speed', 'speed-avg'];
     if (!Array.isArray(c.displayItems) || !c.displayItems.every(item => validItems.includes(item))) {
@@ -326,10 +261,73 @@ export function validateConfig(config: unknown): config is HUDConfig {
     }
   }
 
-  // 验证 enabled
   if (c.enabled !== undefined && typeof c.enabled !== 'boolean') {
     return false;
   }
 
   return true;
+}
+
+// Built-in model context sizes
+const builtinModelContextSizes: Record<string, number> = {
+  'claude-opus-4-7': 200000,
+  'claude-opus-4-6': 200000,
+  'claude-opus-4-5': 200000,
+  'claude-sonnet-4-6': 200000,
+  'claude-sonnet-4-5': 200000,
+  'claude-haiku-4-5': 200000,
+  'claude-3-5-sonnet': 200000,
+  'claude-3-opus': 200000,
+  'claude-3-sonnet': 200000,
+  'claude-3-haiku': 200000,
+  'gpt-4o': 128000,
+  'gpt-4': 128000,
+  'gpt-3.5-turbo': 16385,
+  'gemini-pro': 1000000,
+  'gemini-1.5-pro': 1000000,
+  'deepseek-chat': 64000,
+  'deepseek-coder': 128000,
+};
+
+export function lookupModelContextSize(
+  model: string,
+  modelContextMap?: Record<string, number>
+): { size: number; matchType: string } | null {
+  if (!model) return null;
+
+  const normalizedModel = model.toLowerCase().trim();
+
+  // Priority 1: exact match in user config
+  if (modelContextMap) {
+    for (const [key, value] of Object.entries(modelContextMap)) {
+      if (key.toLowerCase().trim() === normalizedModel) {
+        return { size: value, matchType: 'user-config-exact' };
+      }
+    }
+  }
+
+  // Priority 2: exact match in built-in
+  for (const [key, value] of Object.entries(builtinModelContextSizes)) {
+    if (key.toLowerCase() === normalizedModel) {
+      return { size: value, matchType: 'builtin-exact' };
+    }
+  }
+
+  // Priority 3: prefix match in user config
+  if (modelContextMap) {
+    for (const [key, value] of Object.entries(modelContextMap)) {
+      if (normalizedModel.startsWith(key.toLowerCase().trim())) {
+        return { size: value, matchType: 'user-config-prefix' };
+      }
+    }
+  }
+
+  // Priority 4: prefix match in built-in
+  for (const [key, value] of Object.entries(builtinModelContextSizes)) {
+    if (normalizedModel.startsWith(key.toLowerCase())) {
+      return { size: value, matchType: 'builtin-prefix' };
+    }
+  }
+
+  return null;
 }

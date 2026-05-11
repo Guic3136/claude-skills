@@ -29,23 +29,15 @@ export interface TaskInfo {
   owner?: string;
 }
 
-// 缓存机制，减少重复文件读取
 let taskCache: { tasks: TaskInfo[]; timestamp: number } | null = null;
-const CACHE_TTL = 1000; // 1秒缓存
+const CACHE_TTL = 1000;
 
-/**
- * 从 task 系统获取任务列表
- * 尝试从多个可能的来源读取任务数据
- */
 export async function readTasksFromSystem(): Promise<TaskInfo[]> {
-  // 检查缓存
   if (taskCache && (Date.now() - taskCache.timestamp) < CACHE_TTL) {
     return taskCache.tasks;
   }
 
   const tasks: TaskInfo[] = [];
-
-  // 尝试从 tasks.jsonl 文件读取
   const tasksPath = path.join(homedir(), '.claude', 'tasks.jsonl');
   if (fs.existsSync(tasksPath)) {
     try {
@@ -67,26 +59,20 @@ export async function readTasksFromSystem(): Promise<TaskInfo[]> {
             });
           }
         } catch {
-          // 忽略解析失败的行
           continue;
         }
       }
     } catch (error) {
-      // 读取失败时静默处理
       if (process.env.HUD_DEBUG) {
         console.error('Error reading tasks:', error);
       }
     }
   }
 
-  // 更新缓存
   taskCache = { tasks, timestamp: Date.now() };
   return tasks;
 }
 
-/**
- * 计算任务进度统计
- */
 export function calculateTaskProgress(tasks: TaskInfo[]): TaskProgress {
   return {
     total: tasks.length,
@@ -96,14 +82,10 @@ export function calculateTaskProgress(tasks: TaskInfo[]): TaskProgress {
   };
 }
 
-/**
- * 解析单行 JSON 事件
- */
 function parseEventLine(line: string): AgentEvent | null {
   try {
     const data = JSON.parse(line);
 
-    // 检查是否是 agent 事件
     if (data.type === 'agent_start' || data.type === 'agent_stop') {
       return {
         type: data.type,
@@ -119,22 +101,16 @@ function parseEventLine(line: string): AgentEvent | null {
   }
 }
 
-// Agent 事件缓存
 let agentCache: { events: AgentEvent[]; timestamp: number } | null = null;
-const AGENT_CACHE_TTL = 500; // 500ms 缓存
+const AGENT_CACHE_TTL = 500;
 
-/**
- * 读取 history.jsonl 文件并解析 Agent 事件
- */
 export async function parseHistoryFile(filePath?: string): Promise<AgentEvent[]> {
   const historyPath = filePath || path.join(homedir(), '.claude', 'history.jsonl');
 
-  // 如果文件不存在，返回空数组
   if (!fs.existsSync(historyPath)) {
     return [];
   }
 
-  // 检查缓存
   if (agentCache && (Date.now() - agentCache.timestamp) < AGENT_CACHE_TTL) {
     return agentCache.events;
   }
@@ -142,11 +118,8 @@ export async function parseHistoryFile(filePath?: string): Promise<AgentEvent[]>
   const events: AgentEvent[] = [];
 
   try {
-    // 使用同步读取以提高性能（文件通常很小）
     const content = fs.readFileSync(historyPath, 'utf8');
     const lines = content.split('\n');
-
-    // 只读取最后 100 行以提高性能
     const recentLines = lines.slice(-100);
 
     for (const line of recentLines) {
@@ -165,15 +138,10 @@ export async function parseHistoryFile(filePath?: string): Promise<AgentEvent[]>
     return [];
   }
 
-  // 更新缓存
   agentCache = { events, timestamp: Date.now() };
   return events;
 }
 
-/**
- * 获取当前正在运行的 Agent 列表
- * 通过匹配 agent_start 和 agent_stop 事件对来计算
- */
 export function getRunningAgents(events: AgentEvent[]): AgentStatus[] {
   const runningAgents = new Map<string, AgentStatus>();
 
@@ -185,7 +153,6 @@ export function getRunningAgents(events: AgentEvent[]): AgentStatus[] {
         sessionId: event.sessionId
       });
     } else if (event.type === 'agent_stop') {
-      // 移除已停止的 agent
       runningAgents.delete(event.agentName);
     }
   }
@@ -193,9 +160,6 @@ export function getRunningAgents(events: AgentEvent[]): AgentStatus[] {
   return Array.from(runningAgents.values());
 }
 
-/**
- * 格式化 Agent 状态显示字符串
- */
 export function formatAgentStatus(agents: AgentStatus[]): string {
   if (agents.length === 0) {
     return '';

@@ -1,210 +1,83 @@
-# Claude HUD
+# Claude HUD - 状态栏插件
 
-自定义 Claude Code 状态栏，实时显示关键信息，提升开发效率。
+Claude Code 的状态栏插件，显示实时会话信息。
 
-## 功能介绍
+## 功能
 
-Claude HUD 在状态栏中显示以下信息：
+- **model** - 当前模型名称
+- **context** - 上下文使用率进度条（90% 时警告）
+- **tokens** - Token 数量（k 单位）
+- **git** - Git 分支和状态
+- **path** - 当前项目路径
+- **tool** - 工具使用状态
+- **agent** - Agent 运行状态
+- **todo** - 任务进度
+- **speed** - 当前 Token 输出速率（tok/s）
+- **speed-avg** - 会话平均 Token 速率
 
-| 组件 | 说明 |
-|------|------|
-| **模型显示** | 当前使用的 Claude 模型（如 opus-4-7、sonnet-4-6、mimo-v2） |
-| **Context 使用率** | 可视化进度条显示上下文使用情况，90%+ 显示警告图标 |
-| **Token 计数** | 当前/最大 token 数（k 格式，如 `45.2k/200k`） |
-| **增量速率** | 实时 token 生成速度（tok/s） |
-| **平均速率** | 会话平均 token 生成速度 |
-| **Git 状态** | 分支名、是否有未提交更改 |
-| **项目路径** | 当前工作目录（可配置缩短显示） |
-| **Agent 状态** | 是否有 Agent 正在运行 |
-| **Todo 进度** | 待办任务完成进度 |
+## 安装
 
-## 安装方法
-
-### 方式一：通过 claude-skills 仓库安装（推荐）
+### macOS / Linux
 
 ```bash
-# 1. 克隆仓库
-git clone https://github.com/Guic3136/claude-skills.git
-
-# 2. 运行安装脚本
-cd claude-skills
-python scripts/install.py claude-hud
-
-# 3. 重启 Claude Code
-claude
-```
-
-### 方式二：直接运行 HUD 安装脚本
-
-```bash
-git clone https://github.com/Guic3136/claude-skills.git
-cd claude-skills/skills/claude-hud
+cd skills/claude-hud
+chmod +x install.sh
 ./install.sh
 ```
 
-安装完成后重启 Claude Code 即可看到状态栏。
+### Windows
 
-## 模型自动识别
+在 PowerShell 或 CMD 中执行：
 
-HUD 支持自动识别当前使用的模型，无需手动配置上下文窗口大小。识别优先级：
+```batch
+cd skills\claude-hud
+install.cmd
+```
 
-1. **`~/.claude/settings.json`** 中的 `model` 字段（CC Switch 等工具修改的配置）
-2. **CC Switch 数据库**（`~/.cc-switch/cc-switch.db`）
-3. **环境变量**（`CLAUDE_MODEL` / `ANTHROPIC_MODEL` / `MODEL`）
-4. **stdin 传入值**（Claude Code 默认提供的模型信息）
+安装完成后，重启 Claude Code 即可看到状态栏。
 
-上下文窗口大小自动查找（三级匹配）：
+## 配置
 
-1. **精确匹配** — 用户自定义的 `modelContextMap`
-2. **前缀匹配** — 如 `claude-opus-4-7-xxx` 匹配 `claude-opus-4-7`
-3. **内置匹配** — 内置已知模型映射表
-
-内置已知模型：
-
-| 模型 | 上下文大小 |
-|------|-----------|
-| claude-opus-4-7 | 200,000 |
-| claude-sonnet-4-6 | 200,000 |
-| claude-haiku-4-5 | 200,000 |
-| claude-3-5-sonnet | 200,000 |
-| claude-3-5-haiku | 200,000 |
-| claude-3-opus | 200,000 |
-| claude-3-sonnet | 200,000 |
-| claude-3-haiku | 200,000 |
-| mimo-v2 | 262,144 |
-| mimo-v2-pro | 262,144 |
-
-如果模型不在内置列表中，会回退到用户配置的 `maxContextTokens`。
-
-## 配置指南
-
-使用 `hud-config` 命令打开交互式配置界面：
+配置文件：`~/.claude/hud-config.json`
 
 ```bash
-hud-config
+# 显示所有项目
+hud-config preset full
+
+# 精简模式
+hud-config preset essential
+
+# 最小模式（仅上下文）
+hud-config preset minimal
+
+# 自定义显示项
+hud-config items model,context,speed
+
+# 设置上下文窗口上限
+hud-config limit 200000
+
+# 启用/禁用
+hud-config enable
+hud-config disable
 ```
 
-### 配置文件位置
+## 显示项说明
 
-配置文件位于 `~/.claude/hud-config.json`
+| 项目 | 说明 |
+|------|------|
+| model | 模型名称，自动从 settings.json / CC Switch / 环境变量检测 |
+| context | 上下文使用率，90% 以上显示 ⚠️ 警告 |
+| tokens | 当前/最大 token 数 |
+| git | Git 分支名和修改状态 |
+| path | 当前工作路径 |
+| tool | 当前使用的工具 |
+| agent | 运行中的 Agent |
+| todo | 任务完成进度 |
+| speed | 当前增量 token 速率 |
+| speed-avg | 会话平均 token 速率 |
 
-### 配置选项
+## 跨平台支持
 
-```json
-{
-  "preset": "full",
-  "enabled": true,
-  "displayItems": ["model", "context", "tokens", "speed", "speed-avg", "git", "path", "tool", "agent", "todo"],
-  "maxContextTokens": 0,
-  "modelContextMap": {
-    "my-custom-model": 128000
-  },
-  "colors": {
-    "primary": "[36m",
-    "success": "[32m",
-    "warning": "[33m",
-    "error": "[31m",
-    "info": "[34m",
-    "secondary": "[35m",
-    "muted": "[90m"
-  },
-  "format": {
-    "separator": " | ",
-    "progressBarWidth": 10,
-    "progressBarFilled": "█",
-    "progressBarEmpty": "░",
-    "showPercent": true,
-    "shortenPath": true,
-    "maxPathLength": 30
-  }
-}
-```
-
-### 自定义模型上下文映射
-
-如果使用非标准模型，可以通过 `modelContextMap` 手动映射上下文大小：
-
-```json
-{
-  "modelContextMap": {
-    "my-custom-model": 128000,
-    "another-model": 64000
-  }
-}
-```
-
-匹配规则：先精确匹配，再前缀匹配（最长前缀优先），最后查内置映射。
-
-### 自定义上下文上限
-
-`maxContextTokens` 作为兜底上限，仅在模型自动识别和 `modelContextMap` 都无法匹配时生效。大多数情况下不需要手动设置。
-
-## 预设配置
-
-### essential（精简模式）
-
-仅显示最常用信息：
-- 模型、Context 使用率、Git 分支
-
-```bash
-hud-config --preset essential
-```
-
-### full（完整模式）
-
-显示所有可用信息：
-- 模型、Context、Token 计数、速率、Git、路径、Agent、Todo
-
-```bash
-hud-config --preset full
-```
-
-### minimal（极简模式）
-
-最少干扰，仅在需要时显示：
-- 仅 Context 使用率（超过阈值时）
-
-```bash
-hud-config --preset minimal
-```
-
-## 调试
-
-当状态栏显示异常时，可以启用调试日志：
-
-```bash
-export HUD_DEBUG=1        # 写入 /tmp/hud-debug.log
-export HUD_DEBUG=2        # 同时输出到 stderr（实时查看）
-```
-
-日志包含模型解析过程、stdin 原始数据、上下文大小匹配结果等信息。
-
-## 卸载方法
-
-```bash
-./uninstall.sh
-```
-
-卸载后状态栏将恢复为默认样式。
-
-## 故障排查
-
-**状态栏未显示**
-- 确认已重启 Claude Code
-- 检查 `~/.claude/plugins/claude-hud/` 目录是否存在
-- 检查 `~/.claude/settings.json` 中是否配置了 `statusLine`
-- 运行 `HUD_DEBUG=2 node ~/.claude/plugins/claude-hud/dist/index.js` 查看报错
-
-**模型显示不正确**
-- HUD 会优先读取 `~/.claude/settings.json` 中的 `model` 字段
-- 如果使用 CC Switch，确保 `settings.json` 中的 model 已更新
-- 可通过 `HUD_DEBUG=1` 查看模型解析日志
-
-**上下文上限显示不正确**
-- 内置模型会自动匹配上下文大小，通常不需要手动配置
-- 非标准模型可在 `hud-config.json` 中添加 `modelContextMap` 映射
-- 检查 `~/.claude/hud-config.json` 语法是否正确
-
-## 许可证
-
-MIT License
+- 所有临时文件使用 `os.tmpdir()`，兼容 Windows/macOS/Linux
+- sqlite3 CLI 为可选依赖，Windows 上自动探测插件目录下的 sqlite3.exe
+- 安装脚本：macOS/Linux 使用 `install.sh`，Windows 使用 `install.cmd`

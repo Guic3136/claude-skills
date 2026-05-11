@@ -11,9 +11,6 @@ export interface GitStatus {
   deletedCount: number;
 }
 
-/**
- * 获取当前目录的 Git 分支名
- */
 export function getGitBranch(cwd: string = process.cwd()): string | null {
   try {
     const result = execSync('git branch --show-current', {
@@ -27,9 +24,6 @@ export function getGitBranch(cwd: string = process.cwd()): string | null {
   }
 }
 
-/**
- * 获取 Git 仓库状态
- */
 export function getGitStatus(cwd: string = process.cwd()): GitStatus {
   const branch = getGitBranch(cwd);
 
@@ -59,7 +53,6 @@ export function getGitStatus(cwd: string = process.cwd()): GitStatus {
 
     for (const line of lines) {
       const status = line.substring(0, 2);
-      // Xy 格式，X 是 staging 状态，y 是 working tree 状态
       if (status.includes('M')) modifiedCount++;
       if (status.includes('A')) addedCount++;
       if (status.includes('D')) deletedCount++;
@@ -85,9 +78,6 @@ export function getGitStatus(cwd: string = process.cwd()): GitStatus {
   }
 }
 
-/**
- * 格式化 Git 状态为字符串
- */
 export function formatGitStatus(status: GitStatus): string {
   if (!status.isGitRepo) {
     return '';
@@ -108,19 +98,14 @@ export function formatGitStatus(status: GitStatus): string {
   return result;
 }
 
-/**
- * 获取当前工作目录的短路径
- */
 export function getShortPath(cwd: string = process.cwd(), maxLength: number = 30): string {
   const home = os.homedir();
 
-  // 将 home 路径替换为 ~
   let shortPath = cwd;
   if (cwd.startsWith(home)) {
     shortPath = '~' + cwd.substring(home.length);
   }
 
-  // 如果路径太长，截断中间部分
   if (shortPath.length > maxLength) {
     const parts = shortPath.split('/');
     if (parts.length > 3) {

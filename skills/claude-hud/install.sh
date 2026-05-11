@@ -1,158 +1,95 @@
 #!/bin/bash
 
-# Claude HUD Skill 一键安装脚本
-# 用法: ./install.sh
-
-set -e
-
-# 颜色定义
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
-
-# 脚本所在目录
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-HUD_SRC_DIR="$SCRIPT_DIR/hud"
-
-# 目标目录
-PLUGIN_DIR="$HOME/.claude/plugins/claude-hud"
-CONFIG_FILE="$HOME/.claude/hud-config.json"
-SETTINGS_FILE="$HOME/.claude/settings.json"
-
-log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
-log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
-
-cleanup() {
-  local exit_code=$?
-  if [ $exit_code -ne 0 ]; then
-    echo ""
-    log_error "安装过程中发生错误 (退出码: $exit_code)"
-    log_info "如需回滚，请手动删除: $PLUGIN_DIR"
-  fi
-}
-trap cleanup EXIT
-
 echo "========================================"
-echo "  Claude HUD 状态栏 - 安装脚本"
+echo "  Claude HUD Plugin Installer (macOS/Linux)"
 echo "========================================"
 echo ""
 
-# 1. 检查环境
-log_info "检查环境..."
+# Check Node.js
 if ! command -v node &> /dev/null; then
-  log_error "未找到 Node.js，请先安装 Node.js 16+"
-  exit 1
+    echo "[ERROR] Node.js not found. Please install Node.js >= 16"
+    echo "        Download: https://nodejs.org/"
+    exit 1
 fi
 
-NODE_VERSION=$(node --version | cut -d'v' -f2 | cut -d'.' -f1)
-if [ "$NODE_VERSION" -lt 16 ]; then
-  log_error "Node.js 版本过低，需要 16+，当前: $(node --version)"
-  exit 1
+NODE_MAJOR=$(node -v | cut -d'.' -f1 | sed 's/v//')
+if [ "$NODE_MAJOR" -lt 16 ]; then
+    echo "[ERROR] Node.js version too old. Required >= 16, found: $(node -v)"
+    exit 1
 fi
-log_success "Node.js 版本: $(node --version)"
+echo "[OK] Node.js version: $(node -v)"
 
-# 2. 创建插件目录
-log_info "创建插件目录: $PLUGIN_DIR"
-mkdir -p "$PLUGIN_DIR"
+# Set paths
+PLUGIN_DIR="$HOME/.claude/plugins/claude-hud"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# 3. 复制源码
-log_info "复制 HUD 源码..."
-cp -r "$HUD_SRC_DIR"/* "$PLUGIN_DIR/"
+# Create plugin directory
+echo ""
+echo "[1/5] Creating plugin directory..."
+mkdir -p "$PLUGIN_DIR/src"
 
-# 4. 安装依赖并编译
-cd "$PLUGIN_DIR"
-log_info "安装 npm 依赖..."
-npm install --silent
+# Copy source files
+echo "[2/5] Copying source files..."
+cp -f "$SCRIPT_DIR/hud/src/"*.ts "$PLUGIN_DIR/src/"
+cp -f "$SCRIPT_DIR/hud/package.json" "$PLUGIN_DIR/"
+cp -f "$SCRIPT_DIR/hud/tsconfig.json" "$PLUGIN_DIR/"
+echo "[OK] Source files copied"
 
-log_info "编译 TypeScript..."
+# Install dependencies
+echo "[3/5] Installing dependencies..."
+cd "$PLUGIN_DIR" || exit 1
+npm install
+if [ $? -ne 0 ]; then
+    echo "[ERROR] npm install failed"
+    exit 1
+fi
+echo "[OK] Dependencies installed"
+
+# Build
+echo "[4/5] Building TypeScript..."
 npm run build
+if [ $? -ne 0 ]; then
+    echo "[ERROR] Build failed"
+    exit 1
+fi
+echo "[OK] Build complete"
 
-# 5. 创建默认配置
-if [ ! -f "$CONFIG_FILE" ]; then
-  log_info "创建默认配置文件..."
-  cat > "$CONFIG_FILE" << 'EOF'
+# Create default config
+echo "[5/5] Creating default configuration..."
+mkdir -p "$HOME/.claude"
+if [ ! -f "$HOME/.claude/hud-config.json" ]; then
+    cat > "$HOME/.claude/hud-config.json" << 'EOF'
 {
-  "preset": "essential",
-  "enabled": true,
-  "displayItems": ["model", "context", "git"],
-  "maxContextTokens": 0,
-  "colors": {
-    "primary": "\u001b[36m",
-    "success": "\u001b[32m",
-    "warning": "\u001b[33m",
-    "error": "\u001b[31m",
-    "info": "\u001b[34m",
-    "secondary": "\u001b[35m",
-    "muted": "\u001b[90m"
-  },
-  "format": {
-    "separator": " | ",
-    "progressBarWidth": 10,
-    "progressBarFilled": "█",
-    "progressBarEmpty": "░",
-    "showPercent": true
-  }
+  "preset": "full",
+  "enabled": true
 }
 EOF
-fi
-
-# 6. 配置 settings.json
-log_info "配置 Claude Code settings.json..."
-if [ -f "$SETTINGS_FILE" ]; then
-  # 备份原配置
-  cp "$SETTINGS_FILE" "$SETTINGS_FILE.bak.$(date +%Y%m%d_%H%M%S)"
-
-  # 使用 node 修改 JSON
-  node << NODE_SCRIPT
-const fs = require('fs');
-const settings = JSON.parse(fs.readFileSync('$SETTINGS_FILE', 'utf8'));
-settings.statusLine = {
-  type: "command",
-  command: "node $PLUGIN_DIR/dist/index.js"
-};
-fs.writeFileSync('$SETTINGS_FILE', JSON.stringify(settings, null, 2));
-console.log('Settings updated');
-NODE_SCRIPT
+    echo "[OK] Default hud-config.json created"
 else
-  # 创建新配置
-  mkdir -p "$HOME/.claude"
-  cat > "$SETTINGS_FILE" << EOF
-{
-  "statusLine": {
-    "type": "command",
-    "command": "node $PLUGIN_DIR/dist/index.js"
-  }
-}
-EOF
+    echo "[SKIP] hud-config.json already exists"
 fi
 
-# 7. 创建 hud-config 命令链接
-log_info "创建 hud-config 命令..."
-if [ -d "/usr/local/bin" ] && [ -w "/usr/local/bin" ]; then
-  ln -sf "$PLUGIN_DIR/dist/cli.js" /usr/local/bin/hud-config
-  log_success "hud-config 已链接到 /usr/local/bin/"
-elif [ -d "$HOME/.local/bin" ]; then
-  mkdir -p "$HOME/.local/bin"
-  ln -sf "$PLUGIN_DIR/dist/cli.js" "$HOME/.local/bin/hud-config"
-  log_success "hud-config 已链接到 ~/.local/bin/"
+# Check sqlite3 (optional)
+echo ""
+echo "Checking optional dependencies..."
+if command -v sqlite3 &> /dev/null; then
+    echo "[OK] sqlite3 CLI available"
 else
-  log_warn "无法创建全局命令，请手动添加以下别名:"
-  echo "  alias hud-config='node $PLUGIN_DIR/dist/cli.js'"
+    echo "[INFO] sqlite3 CLI not found (optional)"
+    echo "       CC Switch model detection will use fallback method"
+    echo "       Install via: brew install sqlite3"
 fi
 
+# Done
 echo ""
 echo "========================================"
-log_success "Claude HUD 安装完成！"
+echo "  Installation complete!"
 echo "========================================"
 echo ""
-echo "请重启 Claude Code 以查看状态栏。"
+echo "Please restart Claude Code to see the HUD status bar."
 echo ""
-echo "使用 hud-config 命令自定义配置:"
-echo "  hud-config --preset essential  # 精简模式"
-echo "  hud-config --preset full       # 完整模式"
-echo "  hud-config --preset minimal    # 极简模式"
+echo "Configuration: ~/.claude/hud-config.json"
+echo "  - Run: hud-config preset full"
+echo "  - Run: hud-config preset minimal"
+echo "  - Run: hud-config items model,context,speed"
 echo ""

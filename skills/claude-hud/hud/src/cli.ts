@@ -43,16 +43,16 @@ Examples:
   hud-config disable
 
 Display Items:
-  model     - Model name (e.g., claude-sonnet-4-6)
-  context   - Context usage progress bar
-  tokens    - Token count (current/max)
-  git       - Git branch and status
-  path      - Current project path
-  tool      - Active tool name
-  agent     - Running agents
-  todo      - Task progress
-  speed     - Current token generation speed
-  speed-avg - Average token generation speed
+  model    - Model name (e.g., claude-sonnet-4-6)
+  context  - Context usage progress bar
+  tokens   - Token count (current/max)
+  git      - Git branch and status
+  path     - Current project path
+  tool     - Active tool name
+  agent    - Running agents
+  todo     - Task progress
+  speed    - Current token output speed
+  speed-avg - Session average token speed
 
 Presets:
   full      - Show all items

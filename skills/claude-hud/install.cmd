@@ -36,12 +36,11 @@ echo [1/6] Creating plugin directory...
 if not exist "%PLUGIN_DIR%" mkdir "%PLUGIN_DIR%"
 if not exist "%PLUGIN_DIR%\src" mkdir "%PLUGIN_DIR%\src"
 
-:: Copy source files
+:: Copy source files (from hud\ subdirectory in repo)
 echo [2/6] Copying source files...
-copy /y "%SCRIPT_DIR%src\*.ts" "%PLUGIN_DIR%\src\" >nul
-copy /y "%SCRIPT_DIR%package.json" "%PLUGIN_DIR%\" >nul
-copy /y "%SCRIPT_DIR%tsconfig.json" "%PLUGIN_DIR%\" >nul
-if exist "%SCRIPT_DIR%src\*.js" copy /y "%SCRIPT_DIR%src\*.js" "%PLUGIN_DIR%\src\" >nul
+copy /y "%SCRIPT_DIR%hud\src\*.ts" "%PLUGIN_DIR%\src\" >nul
+copy /y "%SCRIPT_DIR%hud\package.json" "%PLUGIN_DIR%\" >nul
+copy /y "%SCRIPT_DIR%hud\tsconfig.json" "%PLUGIN_DIR%\" >nul
 echo [OK] Source files copied
 
 :: Install dependencies
@@ -84,7 +83,7 @@ set SETTINGS_FILE=%USERPROFILE%\.claude\settings.json
 if not exist "%SETTINGS_FILE%" (
     echo { > "%SETTINGS_FILE%"
     echo   "statusLine": { >> "%SETTINGS_FILE%"
-    echo     "command": "node \"%PLUGIN_DIR%\\dist\\hud.js\"" >> "%SETTINGS_FILE%"
+    echo     "command": "node \"%PLUGIN_DIR%\dist\index.js\"" >> "%SETTINGS_FILE%"
     echo   } >> "%SETTINGS_FILE%"
     echo } >> "%SETTINGS_FILE%"
     echo [OK] settings.json created with statusLine configured
@@ -92,7 +91,7 @@ if not exist "%SETTINGS_FILE%" (
     echo [SKIP] settings.json already exists
     echo        Please manually add the following to your settings.json:
     echo        "statusLine": {
-    echo          "command": "node \"%PLUGIN_DIR%\\dist\\hud.js\""
+    echo          "command": "node \"%PLUGIN_DIR%\dist\index.js\""
     echo        }
 )
 
@@ -117,8 +116,8 @@ echo.
 echo Please restart Claude Code to see the HUD status bar.
 echo.
 echo Configuration: %USERPROFILE%\.claude\hud-config.json
- echo   - Run: hud-config preset full
- echo   - Run: hud-config preset minimal
- echo   - Run: hud-config items model,context,speed
+echo   - Run: hud-config preset full
+echo   - Run: hud-config preset minimal
+echo   - Run: hud-config items model,context,speed
 echo.
 pause

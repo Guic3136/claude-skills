@@ -15,7 +15,9 @@ export function logDebug(message: string, data?: unknown, level: LogLevel = 'deb
   if (!process.env.HUD_DEBUG) return;
 
   const fs = require('fs');
-  const logFile = process.env.HUD_DEBUG_LOG || '/tmp/hud-debug.log';
+  const os = require('os');
+  const path = require('path');
+  const logFile = process.env.HUD_DEBUG_LOG || path.join(os.tmpdir(), 'hud-debug.log');
 
   const logEntry = {
     timestamp: new Date().toISOString(),
